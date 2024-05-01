@@ -1,8 +1,9 @@
 import { createClient } from "@sanity/client";
-import fs from "fs/promises";
+import fs from "fs";
+import path from "path";
 import "dotenv/config";
 
-const saveVersesPath = `${process.cwd()}/src/verses/verses.json`;
+const saveVersesPath = `${process.cwd()}/src/data/verses.json`;
 
 const client = createClient({
   projectId: "kfme7y2v",
@@ -18,7 +19,15 @@ export async function getAllVerses() {
 }
 
 (async () => {
-  const jsonData = JSON.stringify(await getAllVerses(), null, 2); // Pretty print with indentation
-  await fs.writeFile(saveVersesPath, jsonData);
+  const jsonData = JSON.stringify(await getAllVerses(), null, 2);
+  // Pretty print with indentation
+  const dir = path.dirname(saveVersesPath);
+
+  // Create the directory if it does not exist
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+
+  fs.writeFileSync(saveVersesPath, jsonData);
   console.log("Verses saved to verses.json");
 })();

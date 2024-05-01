@@ -1,4 +1,4 @@
-import verses from "../verses/verses.json";
+import verses from "../data/verses.json";
 
 export type Verse = {
   _id: string;
