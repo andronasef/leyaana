@@ -5,20 +5,21 @@ export type Verse = {
   verse: string;
 };
 
-function getUserUniqueNumber() {
-  const userUniqueNumber =
-    localStorage.getItem("userUniqueNumber") ?? Math.random();
-  localStorage.setItem("userUniqueNumber", userUniqueNumber as string);
-  return userUniqueNumber as number;
-}
+// function getUserUniqueNumber() {
+//   const userUniqueNumber =
+//     localStorage.getItem("userUniqueNumber") ?? Math.random();
+//   localStorage.setItem("userUniqueNumber", userUniqueNumber as string);
+//   return userUniqueNumber as number;
+// }
 
-function getUniqueDayNumber() {
-  const date = new Date();
+// function getUniqueDayNumber() {
+//   const date = new Date();
 
-  const key = `${date.getFullYear()}${date.getMonth()}${date.getDate()}`;
+//   const key = `${date.getFullYear()}${date.getMonth()}${date.getDate()}`;
 
-  return key as unknown as number;
-}
+//   return key as unknown as number;
+// }
+
 export function getRandomTodayVerse() {
   const verseIndex =
     // random verse for now
