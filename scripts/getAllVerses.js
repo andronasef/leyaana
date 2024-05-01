@@ -2,6 +2,8 @@ import { createClient } from "@sanity/client";
 import fs from "fs/promises";
 import "dotenv/config";
 
+const saveVersesPath = `${process.cwd()}/src/verses/verses.json`;
+
 const client = createClient({
   projectId: "kfme7y2v",
   dataset: "production",
@@ -17,6 +19,6 @@ export async function getAllVerses() {
 
 (async () => {
   const jsonData = JSON.stringify(await getAllVerses(), null, 2); // Pretty print with indentation
-  await fs.writeFile("./src/verses/verses.json", jsonData);
+  await fs.writeFile(saveVersesPath, jsonData);
   console.log("Verses saved to verses.json");
 })();
