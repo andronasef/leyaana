@@ -8,10 +8,10 @@ import "@fontsource-variable/noto-sans-arabic";
 function App() {
   useHashLocation();
   return (
-    <div className="h-screen flex flex-col">
+    <div className="flex flex-col h-screen">
       <div className="flex-grow">
         <Switch>
-          <Route path="/leyaana/">
+          <Route path="/">
             <Homepage />
           </Route>
           <Route path="/settings">

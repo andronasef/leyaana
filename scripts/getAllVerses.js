@@ -17,6 +17,6 @@ export async function getAllVerses() {
 
 (async () => {
   const jsonData = JSON.stringify(await getAllVerses(), null, 2); // Pretty print with indentation
-  await fs.writeFile("./src/verses.json", jsonData);
+  await fs.writeFile("./src/verses/verses.json", jsonData);
   console.log("Verses saved to verses.json");
 })();
