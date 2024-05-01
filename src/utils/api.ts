@@ -21,7 +21,9 @@ function getUniqueDayNumber() {
 }
 export function getRandomTodayVerse() {
   const verseIndex =
-    Math.floor(getUserUniqueNumber() * getUniqueDayNumber()) % verses.length;
+    // random verse for now
+    Math.floor(Math.random() * verses.length);
+  // Math.floor(getUserUniqueNumber() * getUniqueDayNumber()) % verses.length;
 
   return verses[verseIndex] as Verse;
 }
@@ -48,7 +50,7 @@ function isMale() {
 
 function getPersonName() {
   // from localStorge or default
-  return localStorage.getItem("personName") ?? "[ضيف اسمك في الاعدادات]";
+  return localStorage.getItem("personName") ?? "[اندرو]";
 }
 
 const replaceVars = {

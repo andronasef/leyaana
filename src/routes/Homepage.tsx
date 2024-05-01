@@ -10,7 +10,9 @@ function Homepage() {
 
   return (
     <div className="flex flex-col justify-center items-center h-full">
-      <p className="text-xl font-semibold">{todayVerse && todayVerse.verse}</p>
+      <p className="text-xl font-semibold p-4 text-center">
+        {todayVerse && todayVerse.verse}
+      </p>
     </div>
   );
 }
