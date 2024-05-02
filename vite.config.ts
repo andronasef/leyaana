@@ -15,6 +15,16 @@ export default defineConfig({
         short_name: "ليا انا",
         description: "ليا انا",
         theme_color: "#ffffff",
+        id: "increase.leyaana",
+        launch_handler: {
+          client_mode: "auto",
+        },
+        lang: "ar",
+        prefer_related_applications: false,
+        categories: ["utilities", "lifestyle"],
+        orientation: "any",
+        screenshots: [],
+        dir: "rtl",
         icons: [
           {
             src: "pwa-192x192.png",
