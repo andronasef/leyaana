@@ -8,14 +8,14 @@ import {
 } from "@mui/material";
 import { useState } from "react";
 import { Gender, setSetting, SettingsList } from "../utils/settings";
-import { useLocation } from "wouter";
+import { useHashLocation } from "wouter/use-hash-location";
 import toast from "react-hot-toast";
 
 function WelcomePage() {
   const [name, setName] = useState("");
   const [gender, setGender] = useState(Gender.male); // 1 for man (true)
 
-  const [location, setLocation] = useLocation();
+  const [location, setLocation] = useHashLocation();
 
   const handleNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setName(event.target.value);
@@ -34,7 +34,7 @@ function WelcomePage() {
     setSetting(SettingsList.name, name);
     setSetting(SettingsList.isMale, Boolean(gender));
     setSetting(SettingsList.isWelcomed, true);
-    setLocation("/", { replace: true });
+    setLocation("/");
   }
   return (
     <form className="flex flex-col gap-4 h-full" onSubmit={start}>

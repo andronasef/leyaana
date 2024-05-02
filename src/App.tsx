@@ -1,4 +1,4 @@
-import { Route, Router, Switch, useLocation } from "wouter";
+import { Route, Router, Switch } from "wouter";
 import { useHashLocation } from "wouter/use-hash-location";
 import Homepage from "./routes/Homepage";
 import "./assets/index.css";
@@ -22,10 +22,10 @@ const cacheRtl = createCache({
 
 function App() {
   useHashLocation();
-  const [location, setLocation] = useLocation();
+  const [location, setLocation] = useHashLocation();
 
   useEffect(() => {
-    if (!getSetting(SettingsList.isWelcomed)) setLocation("/#welcome");
+    if (!getSetting(SettingsList.isWelcomed)) setLocation("welcome");
   });
 
   return (
