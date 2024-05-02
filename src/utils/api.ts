@@ -1,4 +1,5 @@
 import verses from "../data/verses.json";
+import { Gender, SettingsList, getSetting } from "./settings";
 
 export type Verse = {
   _id: string;
@@ -29,29 +30,31 @@ export function getRandomTodayVerse() {
   return verses[verseIndex] as Verse;
 }
 
-export function parseVerse(verse: Verse) {
-  const parsedVerse: Verse = verse;
-  const BioVerse = verse.verse.split("---");
-  // Check if it for male / female
+export function parseVerse(myVerse: Verse) {
+  const BioVerse = myVerse.verse.split("---");
 
-  parsedVerse.verse = isMale() ? BioVerse[0] : BioVerse[1];
+  // Check if it for male or female first
+  if (BioVerse.length == 2) {
+    myVerse.verse = isMale() ? BioVerse[0] : BioVerse[1];
+  }
 
   // Replace variables
   Object.entries(replaceVars).forEach(([key, value]) => {
-    parsedVerse.verse = parsedVerse.verse.replace(key, value());
+    myVerse.verse = myVerse.verse.replace(key, value());
   });
 
-  return parsedVerse;
+  return myVerse;
 }
 
 function isMale() {
   // Check if it male LoalStorage
-  return true;
+  const isUserMale = getSetting(SettingsList.isMale) == "true";
+  return Boolean(isUserMale);
 }
 
-function getPersonName() {
+function getPersonName(): string {
   // from localStorge or default
-  return localStorage.getItem("personName") ?? "[اندرو]";
+  return getSetting(SettingsList.name) ?? "[لو سمحت دخل اسمك في الاعدادات]";
 }
 
 const replaceVars = {
