@@ -60,3 +60,5 @@ function getPersonName(): string {
 const replaceVars = {
   "<الاسم>": getPersonName,
 };
+
+export const versesLength = verses.length;
