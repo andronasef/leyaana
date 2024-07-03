@@ -1,4 +1,4 @@
-import verses from "../data/verses.json";
+import verses from "../../public/verses.json";
 import { Gender, SettingsList, getSetting } from "./settings";
 
 export type Verse = {
