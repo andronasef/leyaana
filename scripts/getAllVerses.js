@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import "dotenv/config";
 
-const saveVersesPath = `${process.cwd()}/src/data/verses.json`;
+const saveVersesPath = `${process.cwd()}/public/verses.json`;
 
 const client = createClient({
   projectId: "kfme7y2v",
