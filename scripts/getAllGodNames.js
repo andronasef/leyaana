@@ -39,6 +39,7 @@ export async function getAllGodNames() {
           name,
           mean,
           content: content.parent,
+          id: page.id,
         };
       })
     );
