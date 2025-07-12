@@ -5,8 +5,11 @@
   "type": "module",
   "scripts": {
     "verses": "node ./scripts/getAllVerses.js",
+    "heavenly-blessings": "node ./scripts/getAllHeavenlyBlessings.js",
+    "god-names": "node ./scripts/getAllGodNames.js",
+    "content": "npm-run-all verses heavenly-blessings god-names",
     "dev": "npm run verses && vite",
-    "build": "npm run verses && tsc && vite build",
+    "build": "npm run content && tsc && vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "generate-pwa-assets": "pwa-assets-generator"
@@ -24,6 +27,7 @@
     "compress-json": "^3.0.3",
     "dotenv": "^16.6.1",
     "notion-to-md": "^3.1.9",
+    "npm-run-all": "^4.1.5",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-hot-toast": "^2.4.1",

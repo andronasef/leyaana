@@ -24,3 +24,5 @@ dist-ssr
 *.sw?
 .env
 verses.json
+heavenlyBlessings.json
+godNames.json
