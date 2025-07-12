@@ -31,7 +31,7 @@ jobs:
       - uses: oven-sh/setup-bun@v2
       - name: Create .env file
         run: |
-          echo "SANITY_TOKEN=${{ secrets.SANITY_TOKEN }}" >> .env
+          echo -e "SANITY_TOKEN=${{ secrets.SANITY_TOKEN }}\nNOTION_API_KEY=secrets.NOTION_API_KEY" >> .env
 
       - name: Install dependencies
         run: bun i
