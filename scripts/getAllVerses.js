@@ -4,6 +4,7 @@ import path from "path";
 import "dotenv/config";
 
 const saveVersesPath = `${process.cwd()}/public/verses.json`;
+const saveVersesPath2 = `${process.cwd()}/src/verses.json`;
 
 const client = createClient({
   projectId: "kfme7y2v",
@@ -29,5 +30,6 @@ export async function getAllVerses() {
   }
 
   fs.writeFileSync(saveVersesPath, jsonData);
+  fs.writeFileSync(saveVersesPath2, jsonData);
   console.log("Verses saved to verses.json");
 })();

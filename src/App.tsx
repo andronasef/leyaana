@@ -14,6 +14,8 @@ import { useEffect } from "react";
 import { SettingsList, getSetting } from "./utils/settings";
 import { Toaster } from "react-hot-toast";
 import AllVersesPage from "./routes/All";
+import { useBrowserLocation } from "wouter/use-browser-location";
+import AllVerses from "./routes/All";
 
 // Create rtl cache
 const cacheRtl = createCache({
@@ -22,8 +24,8 @@ const cacheRtl = createCache({
 });
 
 function App() {
-  useHashLocation();
-  const [location, setLocation] = useHashLocation();
+  const isDev = import.meta.env.DEV;
+  const [location, setLocation] = useBrowserLocation();
 
   useEffect(() => {
     if (getSetting(SettingsList.isWelcomed)) setLocation("homepage");
@@ -34,30 +36,7 @@ function App() {
       <ThemeProvider theme={theme}>
         <Toaster />
 
-        <Router hook={useHashLocation}>
-          <div className="flex flex-col h-screen" dir="rtl">
-            <div className="flex-grow p-4">
-              <Switch>
-                <Route path="/homepage">
-                  <Homepage />
-                </Route>
-                <Route path="/all">
-                  <AllVersesPage />
-                </Route>
-                <Route path="/">
-                  <WelcomePage />
-                </Route>
-
-                <Route>
-                  <div className="text-2xl text-red-500">
-                    404: No such page!
-                  </div>
-                </Route>
-              </Switch>
-            </div>
-            {/* <BottomNav /> */}
-          </div>
-        </Router>
+        <AllVerses />
       </ThemeProvider>
     </CacheProvider>
   );

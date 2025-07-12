@@ -9,11 +9,12 @@ import {
 } from "@mui/material";
 import { Gender, setSetting, SettingsList } from "../utils/settings";
 import { parseVerse } from "../utils/api";
-import verses from "../../public/verses.json";
+import verses from "../../src/verses.json";
 
-function AllVersesPage() {
+function AllVerses() {
   const [testName, setTestName] = useState("يوسف");
   const [testGender, setTestGender] = useState<Gender>(Gender.male);
+  const [errorVersesList, setErrorVersesList] = useState<string[]>([]);
 
   const handleNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setTestName(event.target.value);
@@ -35,12 +36,18 @@ function AllVersesPage() {
     setSetting(SettingsList.name, null);
     setSetting(SettingsList.isMale, null);
 
-    return parsed.verse;
+    if (parsed) {
+      // Return the parsed verse
+      return parsed.verse;
+    }
+    return false;
   };
 
   return (
-    <div className="flex flex-col gap-4 p-4">
-      <h1 className="mb-4 text-2xl font-bold">اختبار الآيات</h1>
+    <div className="flex flex-col max-w-4xl gap-4 p-4 py-12 mx-auto">
+      <h1 className="mb-4 text-2xl font-bold">
+        اختبار الآيات (عدد الايات: {verses.length})
+      </h1>
 
       <div className="flex items-center gap-4 mb-6">
         <div className="flex flex-col flex-1 gap-2">
@@ -61,20 +68,49 @@ function AllVersesPage() {
           </Select>
         </div>
       </div>
+      {errorVersesList.length > 0 && (
+        <div>
+          <div className="p-4 font-extrabold text-red-500">الاخطاء</div>
+          <ul>
+            {errorVersesList.map((verse, index) => (
+              <li key={index}>{verse}</li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className="grid gap-4">
-        {verses.map((verse, index) => (
-          <div key={index} className="p-4 bg-white border rounded-lg shadow-sm">
-            <div className="mb-2 font-bold text-gray-600">
-              Verse #{index + 1}
+        {verses.map((verse, index) => {
+          const theParsedVerse = testVerse(verse.verse);
+          const isError = theParsedVerse === false;
+          if (isError) {
+            // If there is an error, add to the error list
+            setErrorVersesList((prev) => [
+              ...prev,
+              "Verse #" + (index + 1) + ": " + verse.verse,
+            ]);
+          }
+          return (
+            <div
+              key={index}
+              className={
+                "p-4 bg-white border rounded-lg shadow-sm" +
+                (isError ? " border-red-500 border-4" : " border-gray-300")
+              }
+            >
+              <div className="mb-2 font-bold text-gray-600 ">
+                Verse #{index + 1}
+              </div>
+              <div className="text-lg">
+                {isError ? "حدث مشكلة اثناء عمل الاية" : theParsedVerse}
+              </div>
+              <div className="mt-2 text-sm text-gray-500">{verse.verse}</div>
             </div>
-            <div className="text-lg">{testVerse(verse.verse)}</div>
-            <div className="mt-2 text-sm text-gray-500">{verse.verse}</div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
 }
 
-export default AllVersesPage;
+export default AllVerses;

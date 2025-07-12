@@ -1,5 +1,5 @@
-import verses from "../../public/verses.json";
-import { Gender, SettingsList, getSetting } from "./settings";
+import verses from "../../src/verses.json";
+import { SettingsList, getSetting } from "./settings";
 
 export type Verse = {
   _id: string;

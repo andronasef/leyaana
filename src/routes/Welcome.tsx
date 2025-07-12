@@ -10,12 +10,13 @@ import { useState } from "react";
 import { Gender, setSetting, SettingsList } from "../utils/settings";
 import { useHashLocation } from "wouter/use-hash-location";
 import toast from "react-hot-toast";
+import { useBrowserLocation } from "wouter/use-browser-location";
 
 function WelcomePage() {
   const [name, setName] = useState("");
   const [gender, setGender] = useState(Gender.male); // 1 for man (true)
 
-  const [location, setLocation] = useHashLocation();
+  const [location, setLocation] = useBrowserLocation();
 
   const handleNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setName(event.target.value);
@@ -37,7 +38,7 @@ function WelcomePage() {
     setLocation("/");
   }
   return (
-    <form className="flex flex-col gap-4 h-full" onSubmit={start}>
+    <form className="flex flex-col h-full gap-4" onSubmit={start}>
       <div className="text-2xl font-bold">اهلا بيك!</div>
       <div className="text-lg">
         اهلا بيك في ابليكشن ليا انا او في الحقيقة هو ليك انت ده المكان اللي
