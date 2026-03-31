@@ -94,7 +94,11 @@ export default defineConfig(({ mode }) => {
       VitePWA({
         injectRegister: "auto",
         registerType: "autoUpdate",
-        includeAssets: ["favicon.ico", "apple-touch-icon.png", "mask-icon.svg"],
+        includeAssets: [
+          "favicon.ico",
+          "apple-touch-icon-180x180.png",
+          "pwa-64x64.png",
+        ],
         manifest: {
           name: "ليا انا",
           short_name: "ليا انا",
@@ -103,9 +107,10 @@ export default defineConfig(({ mode }) => {
           background_color: "#fafafa",
           start_url: "/",
           scope: "/",
+          display_override: ["standalone", "minimal-ui", "browser"],
           display: "standalone",
           orientation: "portrait",
-          id: "increase.leyaana",
+          id: "/",
           launch_handler: {
             client_mode: "auto",
           },
@@ -143,6 +148,8 @@ export default defineConfig(({ mode }) => {
         workbox: {
           clientsClaim: true,
           skipWaiting: true,
+          cleanupOutdatedCaches: true,
+          navigateFallback: "/index.html",
           globPatterns: ["**/*.{js,css,html,ico,png,svg,json}"],
           runtimeCaching: [
             {

@@ -10,9 +10,15 @@ import {
   Tabs,
   Typography,
 } from "@mui/material";
-import { useContext, useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { ColorModeContext } from "../App";
 import { arabicFontStack } from "../theme";
+import {
+  getDailyReminderTimeLabel,
+  getNotificationSupportState,
+  maybeShowDailyReminderAtNine,
+  requestNotificationPermission,
+} from "../utils/notifications";
 import AddPage from "./Add";
 import {
   ContentType,
@@ -37,6 +43,11 @@ interface HomepageProps {
   currentTab: string;
 }
 
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
+}
+
 function Homepage({ currentTab }: HomepageProps) {
   const colorMode = useContext(ColorModeContext);
   const [randomContent, setRandomContent] = useState<{
@@ -50,6 +61,19 @@ function Homepage({ currentTab }: HomepageProps) {
   const [hasLoadedHome, setHasLoadedHome] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(
     getSetting<string>(SettingsList.isDarkMode) === "true",
+  );
+  const [dailyNotificationEnabled, setDailyNotificationEnabled] = useState(
+    getSetting<string>(SettingsList.dailyNotificationEnabled) === "true",
+  );
+  const [notificationPermission, setNotificationPermission] = useState(
+    getNotificationSupportState(),
+  );
+  const [isOnline, setIsOnline] = useState(
+    typeof navigator === "undefined" ? true : navigator.onLine,
+  );
+  const [canInstallPwa, setCanInstallPwa] = useState(false);
+  const deferredInstallPromptRef = useRef<BeforeInstallPromptEvent | null>(
+    null,
   );
 
   const displayName = useMemo(
@@ -97,6 +121,43 @@ function Homepage({ currentTab }: HomepageProps) {
     }
   }, [currentTab, hasLoadedHome]);
 
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (event: Event) => {
+      event.preventDefault();
+      deferredInstallPromptRef.current = event as BeforeInstallPromptEvent;
+      setCanInstallPwa(true);
+    };
+
+    const handleAppInstalled = () => {
+      deferredInstallPromptRef.current = null;
+      setCanInstallPwa(false);
+    };
+
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    window.addEventListener("appinstalled", handleAppInstalled);
+
+    return () => {
+      window.removeEventListener(
+        "beforeinstallprompt",
+        handleBeforeInstallPrompt,
+      );
+      window.removeEventListener("appinstalled", handleAppInstalled);
+    };
+  }, []);
+
   const resetWelcomeState = () => {
     setSetting(SettingsList.isWelcomed, null);
     window.location.reload();
@@ -106,6 +167,65 @@ function Homepage({ currentTab }: HomepageProps) {
     colorMode.toggleColorMode();
     setIsDarkMode((current) => !current);
   };
+
+  const toggleDailyReminder = async (enabled: boolean) => {
+    setDailyNotificationEnabled(enabled);
+    setSetting(SettingsList.dailyNotificationEnabled, enabled);
+
+    let permission = getNotificationSupportState();
+    if (enabled && permission === "default") {
+      permission = await requestNotificationPermission();
+    }
+
+    setNotificationPermission(permission);
+
+    if (enabled && permission === "granted") {
+      void maybeShowDailyReminderAtNine();
+    }
+  };
+
+  const askNotificationPermission = async () => {
+    const permission = await requestNotificationPermission();
+    setNotificationPermission(permission);
+
+    if (permission === "granted" && dailyNotificationEnabled) {
+      void maybeShowDailyReminderAtNine();
+    }
+  };
+
+  const installPwa = async () => {
+    const deferredPrompt = deferredInstallPromptRef.current;
+    if (!deferredPrompt) {
+      return;
+    }
+
+    await deferredPrompt.prompt();
+    await deferredPrompt.userChoice;
+    deferredInstallPromptRef.current = null;
+    setCanInstallPwa(false);
+  };
+
+  const dailyReminderStatus = (() => {
+    const timeLabel = getDailyReminderTimeLabel();
+
+    if (notificationPermission === "unsupported") {
+      return "المتصفح لا يدعم إشعارات النظام على هذا الجهاز.";
+    }
+
+    if (!dailyNotificationEnabled) {
+      return `فعّل التنبيه اليومي لإرسال تذكير الساعة ${timeLabel}.`;
+    }
+
+    if (notificationPermission === "granted") {
+      return `التنبيه اليومي مفعل. سيصلك تذكير يوميًا الساعة ${timeLabel}.`;
+    }
+
+    if (notificationPermission === "denied") {
+      return "الإشعارات مرفوضة من المتصفح. اسمح بها من إعدادات المتصفح أولًا.";
+    }
+
+    return `اسمح بالإشعارات ليعمل التذكير اليومي الساعة ${timeLabel}.`;
+  })();
 
   const renderActiveContent = () => {
     if (activeHomeTab === "verse") {
@@ -191,6 +311,34 @@ function Homepage({ currentTab }: HomepageProps) {
             backgroundColor: "background.paper",
           }}
         >
+          <Alert severity={isOnline ? "success" : "warning"} sx={{ mb: 2 }}>
+            {isOnline
+              ? "أنت الآن متصل بالإنترنت. أي تغييرات معلقة سيتم مزامنتها تلقائيًا."
+              : "أنت الآن offline. تقدر تقرأ المحتوى وتضيف تعديلات، وهيتعمل لها sync أول ما الاتصال يرجع."}
+          </Alert>
+
+          {canInstallPwa ? (
+            <Button
+              variant="contained"
+              fullWidth
+              sx={{ fontFamily: arabicFontStack, fontWeight: 700, mb: 2 }}
+              onClick={() => {
+                void installPwa();
+              }}
+            >
+              تثبيت التطبيق على الجهاز
+            </Button>
+          ) : (
+            <Typography
+              mb={2}
+              color="text.secondary"
+              fontFamily={arabicFontStack}
+            >
+              التطبيق قابل للتثبيت كـ PWA. لو زر التثبيت غير ظاهر فغالبًا
+              التطبيق مثبت بالفعل أو المتصفح لا يعرض المطالبة الآن.
+            </Typography>
+          )}
+
           <FormControlLabel
             control={<Switch checked={isDarkMode} onChange={toggleDarkMode} />}
             label={isDarkMode ? "الوضع الليلي مفعل" : "الوضع النهاري مفعل"}
@@ -201,6 +349,46 @@ function Homepage({ currentTab }: HomepageProps) {
               ml: 0,
             }}
           />
+
+          <FormControlLabel
+            control={
+              <Switch
+                checked={dailyNotificationEnabled}
+                onChange={(_, checked) => {
+                  void toggleDailyReminder(checked);
+                }}
+              />
+            }
+            label="تذكير يومي الساعة 9:00 صباحًا"
+            sx={{
+              mb: 1,
+              width: "100%",
+              justifyContent: "space-between",
+              ml: 0,
+            }}
+          />
+
+          <Typography
+            mb={2}
+            color="text.secondary"
+            fontFamily={arabicFontStack}
+          >
+            {dailyReminderStatus}
+          </Typography>
+
+          {notificationPermission !== "granted" &&
+          notificationPermission !== "unsupported" ? (
+            <Button
+              variant="outlined"
+              fullWidth
+              sx={{ fontFamily: arabicFontStack, fontWeight: 700, mb: 2 }}
+              onClick={() => {
+                void askNotificationPermission();
+              }}
+            >
+              تفعيل إذن الإشعارات
+            </Button>
+          ) : null}
 
           <Typography mb={3}>
             يمكنك تعديل بياناتك الشخصية مثل اسمك الذي يظهر في التطبيق وتفضيلاتك

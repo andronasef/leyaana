@@ -3,6 +3,8 @@ export enum SettingsList {
   isMale = "isMale",
   isDarkMode = "isDarkMode",
   isWelcomed = "isWelcomed",
+  dailyNotificationEnabled = "dailyNotificationEnabled",
+  dailyNotificationLastShownOn = "dailyNotificationLastShownOn",
 }
 
 export enum Gender {

@@ -19,9 +19,12 @@ import {
   Verse,
   createContent,
   deleteContent,
+  flushPendingMutations,
+  getPendingMutationCount,
   getGodNames,
   getHeavenlyBlessings,
   getVerses,
+  subscribePendingMutations,
   updateContent,
 } from "../utils/api";
 
@@ -234,6 +237,7 @@ export default function ContentManager({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [lastChange, setLastChange] = useState<ChangeSummary | null>(null);
+  const [pendingCount, setPendingCount] = useState(getPendingMutationCount());
 
   const loadItems = async () => {
     setLoading(true);
@@ -259,6 +263,14 @@ export default function ContentManager({
     setLastChange(null);
     void loadItems();
   }, [type]);
+
+  useEffect(() => {
+    setPendingCount(getPendingMutationCount());
+
+    return subscribePendingMutations(() => {
+      setPendingCount(getPendingMutationCount());
+    });
+  }, []);
 
   const onFieldChange = (field: FieldName, value: string) => {
     setForm((current) => ({
@@ -291,16 +303,26 @@ export default function ContentManager({
     setSubmitting(true);
 
     try {
+      const response = editingId
+        ? await updateContent({
+            id: editingId,
+            type,
+            data: payload,
+          })
+        : await createContent(type, payload);
+
       if (editingId) {
-        await updateContent({
-          id: editingId,
-          type,
-          data: payload,
-        });
-        toast.success("تم تحديث المحتوى.");
+        toast.success(
+          response.queued
+            ? "تم حفظ التعديل محليًا وسيتم مزامنته عند الاتصال."
+            : "تم تحديث المحتوى.",
+        );
       } else {
-        await createContent(type, payload);
-        toast.success("تمت إضافة المحتوى.");
+        toast.success(
+          response.queued
+            ? "تمت الإضافة محليًا وسيتم رفعها تلقائيًا عند عودة الإنترنت."
+            : "تمت إضافة المحتوى.",
+        );
       }
 
       resetForm();
@@ -340,8 +362,12 @@ export default function ContentManager({
 
     setSubmitting(true);
     try {
-      await deleteContent(id);
-      toast.success("تم حذف العنصر.");
+      const response = await deleteContent(id, type);
+      toast.success(
+        response.queued
+          ? "تم تسجيل الحذف محليًا وسيتم تطبيقه عند عودة الإنترنت."
+          : "تم حذف العنصر.",
+      );
       if (editingId === id) {
         resetForm();
       }
@@ -356,6 +382,35 @@ export default function ContentManager({
     } catch (deleteError) {
       toast.error(
         deleteError instanceof Error ? deleteError.message : "فشل الحذف.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const syncPendingNow = async () => {
+    setSubmitting(true);
+    try {
+      const result = await flushPendingMutations();
+
+      if (result.processed > 0) {
+        toast.success(`تمت مزامنة ${result.processed} عملية بنجاح.`);
+      }
+
+      if (result.remaining > 0) {
+        toast.error(
+          "بعض العمليات ما زالت معلقة. تأكد من الاتصال وحاول مرة أخرى.",
+        );
+      }
+
+      if (result.processed === 0 && result.remaining === 0) {
+        toast.success("لا توجد عمليات معلقة.");
+      }
+
+      await loadItems();
+    } catch (syncError) {
+      toast.error(
+        syncError instanceof Error ? syncError.message : "فشلت المزامنة.",
       );
     } finally {
       setSubmitting(false);
@@ -429,6 +484,24 @@ export default function ContentManager({
 
       {lastChange ? (
         <Alert severity="success">{getChangeMessage(lastChange)}</Alert>
+      ) : null}
+
+      {pendingCount > 0 ? (
+        <Alert
+          severity="warning"
+          action={
+            <Button
+              size="small"
+              disabled={submitting}
+              onClick={() => void syncPendingNow()}
+            >
+              مزامنة الآن
+            </Button>
+          }
+        >
+          يوجد {pendingCount} عملية معلقة بسبب وضع offline، وسيتم إرسالها
+          تلقائيًا عند عودة الإنترنت.
+        </Alert>
       ) : null}
 
       {!loading && !error ? (
