@@ -8,15 +8,15 @@ import {
 } from "@mui/material";
 import { useState } from "react";
 import { Gender, setSetting, SettingsList } from "../utils/settings";
-import { useHashLocation } from "wouter/use-hash-location";
 import toast from "react-hot-toast";
-import { useBrowserLocation } from "wouter/use-browser-location";
 
-function WelcomePage() {
+type WelcomePageProps = {
+  onComplete?: () => void;
+};
+
+function WelcomePage({ onComplete }: WelcomePageProps) {
   const [name, setName] = useState("");
-  const [gender, setGender] = useState(Gender.male); // 1 for man (true)
-
-  const [location, setLocation] = useBrowserLocation();
+  const [gender, setGender] = useState(Gender.male);
 
   const handleNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setName(event.target.value);
@@ -32,10 +32,10 @@ function WelcomePage() {
       return toast.error("مش قولنا ندخل الاسم الاول بس ", {
         icon: "😒",
       });
-    setSetting(SettingsList.name, name);
-    setSetting(SettingsList.isMale, Boolean(gender));
+    setSetting(SettingsList.name, name.trim());
+    setSetting(SettingsList.isMale, String(gender === Gender.male));
     setSetting(SettingsList.isWelcomed, true);
-    setLocation("/");
+    onComplete?.();
   }
   return (
     <form className="flex flex-col h-full gap-4" onSubmit={start}>

@@ -1,12 +1,15 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-
+html,
+body,
+#root {
+  height: 100%;
+}
 
 body {
-    font-family: 'Noto Sans Arabic Variable', sans-serif;
+  font-family: "Cairo", "Noto Sans Arabic Variable", "Noto Sans Arabic",
+    "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
-  
-  

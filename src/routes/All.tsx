@@ -30,7 +30,7 @@ function AllVerses() {
     setSetting(SettingsList.isMale, testGender === Gender.male);
 
     // Parse verse with test values
-    const parsed = parseVerse({ _id: "test", verse });
+    const parsed = parseVerse({ _id: "test", _type: "verse", verse });
 
     // Reset to avoid affecting other parts of the app
     setSetting(SettingsList.name, null);

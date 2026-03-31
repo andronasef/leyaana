@@ -1,8 +1,8 @@
+import {documentInternationalization} from '@sanity/document-internationalization'
+import {visionTool} from '@sanity/vision'
 import {defineConfig} from 'sanity'
 import {structureTool} from 'sanity/structure'
-import {visionTool} from '@sanity/vision'
 import {schemaTypes} from './schemaTypes'
-import {documentInternationalization} from '@sanity/document-internationalization'
 
 export default defineConfig({
   name: 'default',
@@ -17,7 +17,7 @@ export default defineConfig({
     documentInternationalization({
       // Required configuration
       supportedLanguages: [{id: 'ar', title: 'Arabic'}],
-      schemaTypes: ['verse'],
+      schemaTypes: ['verse', 'godName', 'heavenlyBlessing'],
     }),
   ],
 

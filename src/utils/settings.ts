@@ -15,5 +15,10 @@ export function getSetting<T>(name: SettingsList): T {
 }
 
 export function setSetting<T>(name: SettingsList, value: T) {
-  localStorage && localStorage.setItem(name, value as string);
+  if (value === null || value === undefined) {
+    localStorage.removeItem(name);
+    return;
+  }
+
+  localStorage.setItem(name, String(value));
 }

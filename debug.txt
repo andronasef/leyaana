@@ -1,0 +1,2 @@
+-rw-r--r-- 1 A 197121 260 Mar 31 16:46 .env
+-rw-r--r-- 1 A 197121 349 Mar 31 16:31 .env.example
