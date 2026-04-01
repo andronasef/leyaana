@@ -95,7 +95,7 @@ export default defineConfig(({ mode }) => {
         strategies: "injectManifest",
         srcDir: "src",
         filename: "sw.ts",
-        injectRegister: "auto",
+        injectRegister: false,
         registerType: "autoUpdate",
         includeAssets: [
           "favicon.ico",

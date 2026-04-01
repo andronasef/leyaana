@@ -22,7 +22,7 @@ clientsClaim();
 precacheAndRoute(self.__WB_MANIFEST);
 cleanupOutdatedCaches();
 
-registerRoute(new NavigationRoute(createHandlerBoundToURL("/index.html")));
+registerRoute(new NavigationRoute(createHandlerBoundToURL("index.html")));
 
 registerRoute(
   /^https:\/\/[^/]+\.(api|apicdn)\.sanity\.io\/v\d{4}-\d{2}-\d{2}\/data\/query\//,
@@ -49,8 +49,9 @@ self.addEventListener("activate", (event) => {
         keys
           .filter(
             (key) =>
-              key.startsWith(CACHE_PREFIX + "-") &&
-              !key.endsWith("-" + CACHE_VERSION),
+              (key.startsWith(CACHE_PREFIX + "-") &&
+                !key.endsWith("-" + CACHE_VERSION)) ||
+              key === "sanity-query-cache",
           )
           .map((key) => caches.delete(key)),
       ),
