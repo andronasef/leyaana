@@ -92,7 +92,10 @@ export default defineConfig(({ mode }) => {
       react(),
       localContentApiPlugin(),
       VitePWA({
-        injectRegister: "auto",
+        strategies: "injectManifest",
+        srcDir: "src",
+        filename: "sw.ts",
+        injectRegister: false,
         registerType: "autoUpdate",
         includeAssets: [
           "favicon.ico",
@@ -145,41 +148,8 @@ export default defineConfig(({ mode }) => {
           ],
         },
 
-        workbox: {
-          clientsClaim: true,
-          skipWaiting: true,
-          cleanupOutdatedCaches: true,
-          navigateFallback: "/index.html",
+        injectManifest: {
           globPatterns: ["**/*.{js,css,html,ico,png,svg,json}"],
-          runtimeCaching: [
-            {
-              urlPattern:
-                /^https:\/\/.+\.(api|apicdn)\.sanity\.io\/v\d{4}-\d{2}-\d{2}\/data\/query\/.+/,
-              handler: "NetworkFirst",
-              options: {
-                cacheName: "sanity-query-cache",
-                expiration: {
-                  maxEntries: 100,
-                  maxAgeSeconds: 60 * 60 * 24,
-                },
-              },
-            },
-            {
-              urlPattern: /\/api\/content/,
-              method: "POST",
-              handler: "NetworkOnly",
-            },
-            {
-              urlPattern: /\/api\/content/,
-              method: "PATCH",
-              handler: "NetworkOnly",
-            },
-            {
-              urlPattern: /\/api\/content/,
-              method: "DELETE",
-              handler: "NetworkOnly",
-            },
-          ],
         },
         devOptions: {
           enabled: true,
