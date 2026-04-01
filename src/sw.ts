@@ -1,5 +1,5 @@
 /// <reference lib="webworker" />
-import { clientsClaim } from "workbox-core";
+import { clientsClaim, setCacheNameDetails } from "workbox-core";
 import {
   cleanupOutdatedCaches,
   createHandlerBoundToURL,
@@ -10,6 +10,11 @@ import { ExpirationPlugin } from "workbox-expiration";
 import { NetworkFirst, NetworkOnly } from "workbox-strategies";
 
 declare const self: ServiceWorkerGlobalScope;
+
+const CACHE_PREFIX = "leyaana";
+const CACHE_VERSION = "v1";
+
+setCacheNameDetails({ prefix: CACHE_PREFIX, suffix: CACHE_VERSION });
 
 self.skipWaiting();
 clientsClaim();
@@ -22,7 +27,7 @@ registerRoute(new NavigationRoute(createHandlerBoundToURL("/index.html")));
 registerRoute(
   /^https:\/\/[^/]+\.(api|apicdn)\.sanity\.io\/v\d{4}-\d{2}-\d{2}\/data\/query\//,
   new NetworkFirst({
-    cacheName: "sanity-query-cache",
+    cacheName: `${CACHE_PREFIX}-sanity-query-${CACHE_VERSION}`,
     plugins: [
       new ExpirationPlugin({
         maxEntries: 100,
@@ -36,6 +41,22 @@ registerRoute(
 registerRoute(/\/api\/content/, new NetworkOnly(), "POST");
 registerRoute(/\/api\/content/, new NetworkOnly(), "PATCH");
 registerRoute(/\/api\/content/, new NetworkOnly(), "DELETE");
+
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    caches.keys().then((keys) =>
+      Promise.all(
+        keys
+          .filter(
+            (key) =>
+              key.startsWith(CACHE_PREFIX + "-") &&
+              !key.endsWith("-" + CACHE_VERSION),
+          )
+          .map((key) => caches.delete(key)),
+      ),
+    ),
+  );
+});
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
