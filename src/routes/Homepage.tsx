@@ -29,7 +29,7 @@ import {
   getVerses,
   parseNamedContent,
   parseVerse,
-  pickRandomItem,
+  getDailyItem,
 } from "../utils/api";
 import { SettingsList, getSetting, setSetting } from "../utils/settings";
 
@@ -92,9 +92,9 @@ function Homepage({ currentTab }: HomepageProps) {
         getHeavenlyBlessings(),
       ]);
 
-      const pickedVerse = pickRandomItem(verses);
-      const pickedGodName = pickRandomItem(godNames);
-      const pickedBlessing = pickRandomItem(blessings);
+      const pickedVerse = getDailyItem(verses, "verse");
+      const pickedGodName = getDailyItem(godNames, "godName");
+      const pickedBlessing = getDailyItem(blessings, "blessing");
 
       setRandomContent({
         verse: pickedVerse ? parseVerse(pickedVerse) : undefined,

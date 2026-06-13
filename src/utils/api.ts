@@ -744,6 +744,14 @@ export function getRandomTodayVerse(allVerses: Verse[]) {
   return allVerses[verseIndex];
 }
 
+export function getDailyItem<T>(allItems: T[], typeKey: string): T | undefined {
+  if (!allItems.length) return undefined;
+  const dateKey = new Date().toISOString().slice(0, 10);
+  const userKey = getPersonName();
+  const index = hashValue(`${dateKey}:${userKey}:${typeKey}`) % allItems.length;
+  return allItems[index];
+}
+
 export function parseVerse(myVerse: Verse) {
   const bioVerse = myVerse.verse.split("---");
   let parsedText = myVerse.verse;
