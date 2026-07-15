@@ -13,7 +13,7 @@
     "dev": "npm run verses && vite",
     "build": "npm run content && tsc && vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "check:periods": "tsx scripts/checkPeriodKeys.ts",
+    "check:reminders": "tsx scripts/checkReminders.ts",
     "preview": "vite preview",
     "generate-pwa-assets": "pwa-assets-generator"
   },

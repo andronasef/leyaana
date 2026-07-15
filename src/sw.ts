@@ -8,8 +8,14 @@ import {
 import { NavigationRoute, registerRoute } from "workbox-routing";
 import { ExpirationPlugin } from "workbox-expiration";
 import { NetworkFirst, NetworkOnly } from "workbox-strategies";
+import { dueReminders, markShown } from "./utils/reminderCore";
+import { readReminderState, writeReminderState } from "./utils/reminderStore";
 
 declare const self: ServiceWorkerGlobalScope;
+
+interface PeriodicSyncEvent extends ExtendableEvent {
+  tag: string;
+}
 
 const CACHE_PREFIX = "leyaana";
 const CACHE_VERSION = "v1";
@@ -44,19 +50,49 @@ registerRoute(/\/api\/content/, new NetworkOnly(), "DELETE");
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(
-        keys
-          .filter(
-            (key) =>
-              (key.startsWith(CACHE_PREFIX + "-") &&
-                !key.endsWith("-" + CACHE_VERSION)) ||
-              key === "sanity-query-cache",
-          )
-          .map((key) => caches.delete(key)),
+    caches
+      .keys()
+      .then((keys) =>
+        Promise.all(
+          keys
+            .filter(
+              (key) =>
+                (key.startsWith(CACHE_PREFIX + "-") &&
+                  !key.endsWith("-" + CACHE_VERSION)) ||
+                key === "sanity-query-cache",
+            )
+            .map((key) => caches.delete(key)),
+        ),
       ),
-    ),
   );
+});
+
+// Best-effort background delivery: Chrome alone decides whether and when this
+// fires (installed PWA + site engagement only, never on iOS), so a miss is
+// expected and the in-page watcher remains the reliable path. Everything is read
+// from IndexedDB because a worker has no localStorage. showNotification rejects
+// on its own if permission was revoked, and letting it throw is what we want:
+// the reminder then stays unmarked and is retried next time.
+async function showDueReminders() {
+  for (const due of dueReminders(await readReminderState(), new Date())) {
+    await self.registration.showNotification(due.title, {
+      body: due.body,
+      icon: "/pwa-192x192.png",
+      badge: "/pwa-64x64.png",
+      tag: `verse-reminder-${due.period}`,
+    });
+    // Re-read before writing: the page may have shown one in the meantime.
+    await writeReminderState(markShown(await readReminderState(), due));
+  }
+}
+
+self.addEventListener("periodicsync", (event) => {
+  const syncEvent = event as PeriodicSyncEvent;
+  if (syncEvent.tag !== "verse-reminders") {
+    return;
+  }
+
+  syncEvent.waitUntil(showDueReminders());
 });
 
 self.addEventListener("notificationclick", (event) => {

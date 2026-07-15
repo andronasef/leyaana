@@ -17,7 +17,8 @@ import {
   getNotificationSupportState,
   getReminderTimeLabel,
   isReminderEnabled,
-  maybeShowVerseReminder,
+  refreshAndShowReminders,
+  registerPeriodicReminderSync,
   reminderPeriods,
   reminders,
   requestNotificationPermission,
@@ -186,8 +187,12 @@ function Homepage({ currentTab }: HomepageProps) {
 
     setNotificationPermission(permission);
 
-    if (enabled && permission === "granted") {
-      void maybeShowVerseReminder(period);
+    // Mirror the new flag into IndexedDB so the worker sees it too, then let
+    // the shared logic decide whether anything is actually due right now.
+    await refreshAndShowReminders();
+
+    if (enabled) {
+      void registerPeriodicReminderSync();
     }
   };
 
@@ -196,9 +201,8 @@ function Homepage({ currentTab }: HomepageProps) {
     setNotificationPermission(permission);
 
     if (permission === "granted") {
-      reminderPeriods
-        .filter((period) => reminderEnabled[period])
-        .forEach((period) => void maybeShowVerseReminder(period));
+      await refreshAndShowReminders();
+      void registerPeriodicReminderSync();
     }
   };
 
@@ -226,7 +230,7 @@ function Homepage({ currentTab }: HomepageProps) {
     }
 
     if (notificationPermission === "granted") {
-      return `التنبيهات مفعلة. هتوصلك الآية الساعة ${timeLabel}.`;
+      return `التنبيهات مفعلة. هتوصلك الآية أول ما تفتح التطبيق بعد الساعة ${timeLabel}. ولو التطبيق متثبت على الجهاز، ممكن توصلك من غير ما تفتحه، بس المتصفح هو اللي بيحدد الوقت.`;
     }
 
     if (notificationPermission === "denied") {

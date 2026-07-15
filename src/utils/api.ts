@@ -1,6 +1,6 @@
 import { createClient } from "@sanity/client";
 import { SettingsList, getSetting } from "./settings";
-import { Period, getPeriodKey } from "./period";
+import { Period, getPeriodKey, hashValue, pickIndex } from "./period";
 
 export { getPeriodKey };
 export type { Period };
@@ -718,15 +718,6 @@ async function parseMutationResponse(response: Response) {
   return result;
 }
 
-function hashValue(value: string) {
-  let hash = 0;
-  for (let i = 0; i < value.length; i += 1) {
-    hash = (hash << 5) - hash + value.charCodeAt(i);
-    hash |= 0;
-  }
-  return Math.abs(hash);
-}
-
 export function pickRandomItem<T>(allItems: T[]) {
   if (!allItems.length) {
     return undefined;
@@ -754,10 +745,12 @@ export function getPeriodItem<T>(
   period: Period = "daily",
 ): T | undefined {
   if (!allItems.length) return undefined;
-  const userKey = getPersonName();
-  const index =
-    hashValue(`${getPeriodKey(period)}:${userKey}:${typeKey}`) %
-    allItems.length;
+  const index = pickIndex(
+    getPeriodKey(period),
+    getPersonName(),
+    typeKey,
+    allItems.length,
+  );
   return allItems[index];
 }
 
@@ -799,7 +792,7 @@ function isMale() {
   return Boolean(isUserMale);
 }
 
-function getPersonName(): string {
+export function getPersonName(): string {
   return getSetting(SettingsList.name) ?? "[لو سمحت دخل اسمك في الاعدادات]";
 }
 

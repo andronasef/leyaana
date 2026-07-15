@@ -1,54 +1,36 @@
+import { getPersonName, getVerses, parseVerse } from "./api";
+import { Period, periods } from "./period";
 import {
-  Period,
-  getPeriodItem,
-  getPeriodKey,
-  getVerses,
-  parseVerse,
-} from "./api";
-import { SettingsList, getSetting, setSetting } from "./settings";
-
-const REMINDER_HOUR = 9;
-const REMINDER_MINUTE = 0;
+  DueReminder,
+  REMINDER_HOUR,
+  dueReminders,
+  markShown,
+  reminderTitles,
+} from "./reminderCore";
+import { readReminderState, updateReminderState } from "./reminderStore";
+import { SettingsList, getSetting } from "./settings";
 
 export type NotificationSupportState = NotificationPermission | "unsupported";
 
-type ReminderConfig = {
-  enabledSetting: SettingsList;
-  lastShownSetting: SettingsList;
-  title: string;
-};
+export const reminderPeriods = periods;
 
-export const reminders: Record<Period, ReminderConfig> = {
+export const reminders: Record<
+  Period,
+  { enabledSetting: SettingsList; title: string }
+> = {
   daily: {
     enabledSetting: SettingsList.dailyNotificationEnabled,
-    lastShownSetting: SettingsList.dailyNotificationLastShownOn,
-    title: "آية النهارده",
+    title: reminderTitles.daily,
   },
   weekly: {
     enabledSetting: SettingsList.weeklyNotificationEnabled,
-    lastShownSetting: SettingsList.weeklyNotificationLastShownOn,
-    title: "آية الأسبوع",
+    title: reminderTitles.weekly,
   },
   monthly: {
     enabledSetting: SettingsList.monthlyNotificationEnabled,
-    lastShownSetting: SettingsList.monthlyNotificationLastShownOn,
-    title: "آية الشهر",
+    title: reminderTitles.monthly,
   },
 };
-
-export const reminderPeriods = Object.keys(reminders) as Period[];
-
-function isReminderTimeReached(date = new Date()) {
-  if (date.getHours() > REMINDER_HOUR) {
-    return true;
-  }
-
-  if (date.getHours() < REMINDER_HOUR) {
-    return false;
-  }
-
-  return date.getMinutes() >= REMINDER_MINUTE;
-}
 
 export function isReminderEnabled(period: Period) {
   return getSetting<string>(reminders[period].enabledSetting) === "true";
@@ -67,77 +49,98 @@ export async function requestNotificationPermission() {
     return "unsupported" as const;
   }
 
-  const permission = await Notification.requestPermission();
-  return permission;
+  return await Notification.requestPermission();
 }
 
-async function showVerseNotification(
-  period: Period,
-  title: string,
-  body: string,
-) {
+// The worker cannot read localStorage or reach Sanity on its own, so the page
+// pushes everything it needs into IndexedDB whenever it has fresh data.
+export async function syncReminderState() {
+  const verses = (await getVerses()).map((verse) => parseVerse(verse).verse);
+  const userKey = getPersonName();
+
+  await updateReminderState((current) => ({
+    ...current,
+    enabled: {
+      daily: isReminderEnabled("daily"),
+      weekly: isReminderEnabled("weekly"),
+      monthly: isReminderEnabled("monthly"),
+    },
+    userKey,
+    verses,
+  }));
+}
+
+async function showReminder(due: DueReminder) {
   const options: NotificationOptions = {
-    body,
+    body: due.body,
     icon: "/pwa-192x192.png",
-    tag: `verse-reminder-${period}`,
+    tag: `verse-reminder-${due.period}`,
   };
 
-  if (typeof navigator !== "undefined" && "serviceWorker" in navigator) {
-    try {
-      const registration = await navigator.serviceWorker.getRegistration();
-      if (registration && typeof registration.showNotification === "function") {
-        await registration.showNotification(title, {
-          ...options,
-          badge: "/pwa-64x64.png",
-        });
-        return;
-      }
-    } catch {
-      // Fall back to regular Notification below.
-    }
+  const registration =
+    typeof navigator !== "undefined" && "serviceWorker" in navigator
+      ? await navigator.serviceWorker.getRegistration().catch(() => undefined)
+      : undefined;
+
+  if (registration?.showNotification) {
+    await registration.showNotification(due.title, {
+      ...options,
+      badge: "/pwa-64x64.png",
+    });
+    return;
   }
 
-  new Notification(title, options);
+  new Notification(due.title, options);
 }
 
-export async function maybeShowVerseReminder(period: Period) {
-  if (!isReminderEnabled(period)) {
-    return;
-  }
-
-  if (!isReminderTimeReached()) {
-    return;
-  }
-
+export async function maybeShowVerseReminders(now = new Date()) {
   if (getNotificationSupportState() !== "granted") {
     return;
   }
 
-  // The period key doubles as the schedule: it only changes at the period
-  // boundary, so one notification per day/week/month falls out of the dedup.
-  const periodKey = getPeriodKey(period);
-  const { lastShownSetting, title } = reminders[period];
-  if (getSetting<string>(lastShownSetting) === periodKey) {
-    return;
+  for (const due of dueReminders(await readReminderState(), now)) {
+    await showReminder(due);
+    await updateReminderState((current) => markShown(current, due));
   }
-
-  const picked = getPeriodItem(await getVerses(), "verse", period);
-  if (!picked) {
-    return;
-  }
-
-  await showVerseNotification(period, title, parseVerse(picked).verse);
-  setSetting(lastShownSetting, periodKey);
 }
 
-export async function maybeShowVerseReminders() {
-  for (const period of reminderPeriods) {
-    await maybeShowVerseReminder(period);
+export async function refreshAndShowReminders() {
+  await syncReminderState();
+  await maybeShowVerseReminders();
+}
+
+// Best-effort background delivery. Chrome decides if and when periodicsync
+// actually fires, so the in-page watcher below stays as the reliable path.
+export async function registerPeriodicReminderSync() {
+  if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) {
+    return false;
+  }
+
+  try {
+    const registration = await navigator.serviceWorker.ready;
+    if (!registration.periodicSync) {
+      return false;
+    }
+
+    const status = await navigator.permissions.query({
+      name: "periodic-background-sync" as PermissionName,
+    });
+    if (status.state !== "granted") {
+      return false;
+    }
+
+    await registration.periodicSync.register("verse-reminders", {
+      minInterval: 60 * 60 * 1000,
+    });
+    return true;
+  } catch {
+    return false;
   }
 }
 
 export function startVerseReminderWatcher() {
-  void maybeShowVerseReminders();
+  void refreshAndShowReminders();
+  void registerPeriodicReminderSync();
 
   const intervalId = window.setInterval(() => {
     void maybeShowVerseReminders();
@@ -149,5 +152,5 @@ export function startVerseReminderWatcher() {
 }
 
 export function getReminderTimeLabel() {
-  return "9:00 صباحًا";
+  return `${REMINDER_HOUR}:00 صباحًا`;
 }
