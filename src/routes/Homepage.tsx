@@ -3,6 +3,7 @@ import {
   Box,
   Button,
   CircularProgress,
+  Divider,
   FormControlLabel,
   Paper,
   Switch,
@@ -31,11 +32,13 @@ import {
   Verse,
   getGodNames,
   getHeavenlyBlessings,
+  getPeriodItem,
   getVerses,
   parseNamedContent,
   parseVerse,
   getDailyItem,
 } from "../utils/api";
+import { periodTitles } from "../utils/reminderCore";
 import { SettingsList, getSetting, setSetting } from "../utils/settings";
 
 const contentTabs: Array<{ value: ContentType; label: string }> = [
@@ -56,7 +59,7 @@ interface BeforeInstallPromptEvent extends Event {
 function Homepage({ currentTab }: HomepageProps) {
   const colorMode = useContext(ColorModeContext);
   const [randomContent, setRandomContent] = useState<{
-    verse?: Verse;
+    verses?: Partial<Record<Period, Verse>>;
     godName?: NamedContent;
     heavenlyBlessing?: NamedContent;
   }>({});
@@ -100,12 +103,20 @@ function Homepage({ currentTab }: HomepageProps) {
         getHeavenlyBlessings(),
       ]);
 
-      const pickedVerse = getDailyItem(verses, "verse");
+      // Same seed as the reminders, so the verse shown here is the one that
+      // gets sent for that period.
+      const pickedVerses = Object.fromEntries(
+        reminderPeriods.map((period) => {
+          const picked = getPeriodItem(verses, "verse", period);
+          return [period, picked ? parseVerse(picked) : undefined];
+        }),
+      ) as Partial<Record<Period, Verse>>;
+
       const pickedGodName = getDailyItem(godNames, "godName");
       const pickedBlessing = getDailyItem(blessings, "blessing");
 
       setRandomContent({
-        verse: pickedVerse ? parseVerse(pickedVerse) : undefined,
+        verses: pickedVerses,
         godName: pickedGodName ? parseNamedContent(pickedGodName) : undefined,
         heavenlyBlessing: pickedBlessing
           ? parseNamedContent(pickedBlessing)
@@ -242,29 +253,51 @@ function Homepage({ currentTab }: HomepageProps) {
 
   const renderActiveContent = () => {
     if (activeHomeTab === "verse") {
-      const verse = randomContent.verse;
-      if (!verse) {
+      const shown = reminderPeriods
+        .map((period) => ({ period, verse: randomContent.verses?.[period] }))
+        .filter(
+          (entry): entry is { period: Period; verse: Verse } => !!entry.verse,
+        );
+
+      if (!shown.length) {
         return <Alert severity="info">لا توجد آيات متاحة حاليًا.</Alert>;
       }
 
       return (
-        <Box className="flex flex-col gap-4 py-2">
-          <Typography
-            sx={{ whiteSpace: "pre-wrap", lineHeight: 1.8, fontWeight: 700 }}
-            fontFamily={arabicFontStack}
-            variant="h5"
-          >
-            {`"${verse.verse}"`}
-          </Typography>
-          {verse.title ? (
-            <Typography
-              color="text.secondary"
-              fontWeight={700}
-              fontFamily={arabicFontStack}
-            >
-              {verse.title}
-            </Typography>
-          ) : null}
+        <Box className="flex flex-col gap-5 py-2">
+          {shown.map(({ period, verse }, index) => (
+            <Box key={period} className="flex flex-col gap-2">
+              {index > 0 ? <Divider sx={{ mb: 3 }} /> : null}
+              <Typography
+                color="text.secondary"
+                fontFamily={arabicFontStack}
+                fontWeight={700}
+                variant="body2"
+              >
+                {periodTitles[period]}
+              </Typography>
+              <Typography
+                sx={{
+                  whiteSpace: "pre-wrap",
+                  lineHeight: 1.8,
+                  fontWeight: 700,
+                }}
+                fontFamily={arabicFontStack}
+                variant="h5"
+              >
+                {`"${verse.verse}"`}
+              </Typography>
+              {verse.title ? (
+                <Typography
+                  color="text.secondary"
+                  fontWeight={700}
+                  fontFamily={arabicFontStack}
+                >
+                  {verse.title}
+                </Typography>
+              ) : null}
+            </Box>
+          ))}
         </Box>
       );
     }
@@ -483,7 +516,7 @@ function Homepage({ currentTab }: HomepageProps) {
             fontWeight={700}
           >
             {activeHomeTab === "verse"
-              ? "آية النهارده"
+              ? "الآيات"
               : activeHomeTab === "godName"
                 ? "اسم من أسماء الله"
                 : "بركة النهارده"}

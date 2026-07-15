@@ -3,7 +3,9 @@ import { Period, getPeriodKey, periods, pickIndex } from "./period";
 export const REMINDER_HOUR = 9;
 export const REMINDER_MINUTE = 0;
 
-export const reminderTitles: Record<Period, string> = {
+// Labels the homepage sections and the notification titles, so the two can
+// never drift apart.
+export const periodTitles: Record<Period, string> = {
   daily: "آية النهارده",
   weekly: "آية الأسبوع",
   monthly: "آية الشهر",
@@ -60,7 +62,7 @@ export function dueReminders(state: ReminderState, now: Date): DueReminder[] {
       ];
 
     return body
-      ? [{ period, periodKey, title: reminderTitles[period], body }]
+      ? [{ period, periodKey, title: periodTitles[period], body }]
       : [];
   });
 }

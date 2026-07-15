@@ -5,7 +5,7 @@ import {
   REMINDER_HOUR,
   dueReminders,
   markShown,
-  reminderTitles,
+  periodTitles,
 } from "./reminderCore";
 import { readReminderState, updateReminderState } from "./reminderStore";
 import { SettingsList, getSetting } from "./settings";
@@ -20,15 +20,15 @@ export const reminders: Record<
 > = {
   daily: {
     enabledSetting: SettingsList.dailyNotificationEnabled,
-    title: reminderTitles.daily,
+    title: periodTitles.daily,
   },
   weekly: {
     enabledSetting: SettingsList.weeklyNotificationEnabled,
-    title: reminderTitles.weekly,
+    title: periodTitles.weekly,
   },
   monthly: {
     enabledSetting: SettingsList.monthlyNotificationEnabled,
-    title: reminderTitles.monthly,
+    title: periodTitles.monthly,
   },
 };
 
