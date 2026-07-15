@@ -1,39 +1,57 @@
+import {
+  Period,
+  getPeriodItem,
+  getPeriodKey,
+  getVerses,
+  parseVerse,
+} from "./api";
 import { SettingsList, getSetting, setSetting } from "./settings";
 
-const DAILY_REMINDER_HOUR = 9;
-const DAILY_REMINDER_MINUTE = 0;
+const REMINDER_HOUR = 9;
+const REMINDER_MINUTE = 0;
 
 export type NotificationSupportState = NotificationPermission | "unsupported";
 
-function getTodayKey(date = new Date()) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
+type ReminderConfig = {
+  enabledSetting: SettingsList;
+  lastShownSetting: SettingsList;
+  title: string;
+};
+
+export const reminders: Record<Period, ReminderConfig> = {
+  daily: {
+    enabledSetting: SettingsList.dailyNotificationEnabled,
+    lastShownSetting: SettingsList.dailyNotificationLastShownOn,
+    title: "آية النهارده",
+  },
+  weekly: {
+    enabledSetting: SettingsList.weeklyNotificationEnabled,
+    lastShownSetting: SettingsList.weeklyNotificationLastShownOn,
+    title: "آية الأسبوع",
+  },
+  monthly: {
+    enabledSetting: SettingsList.monthlyNotificationEnabled,
+    lastShownSetting: SettingsList.monthlyNotificationLastShownOn,
+    title: "آية الشهر",
+  },
+};
+
+export const reminderPeriods = Object.keys(reminders) as Period[];
 
 function isReminderTimeReached(date = new Date()) {
-  if (date.getHours() > DAILY_REMINDER_HOUR) {
+  if (date.getHours() > REMINDER_HOUR) {
     return true;
   }
 
-  if (date.getHours() < DAILY_REMINDER_HOUR) {
+  if (date.getHours() < REMINDER_HOUR) {
     return false;
   }
 
-  return date.getMinutes() >= DAILY_REMINDER_MINUTE;
+  return date.getMinutes() >= REMINDER_MINUTE;
 }
 
-function isDailyReminderEnabled() {
-  return getSetting<string>(SettingsList.dailyNotificationEnabled) === "true";
-}
-
-function getLastShownDay() {
-  return getSetting<string>(SettingsList.dailyNotificationLastShownOn);
-}
-
-function setLastShownDay(dayKey: string) {
-  setSetting(SettingsList.dailyNotificationLastShownOn, dayKey);
+export function isReminderEnabled(period: Period) {
+  return getSetting<string>(reminders[period].enabledSetting) === "true";
 }
 
 export function getNotificationSupportState(): NotificationSupportState {
@@ -53,19 +71,24 @@ export async function requestNotificationPermission() {
   return permission;
 }
 
-async function showReminderNotification() {
-  const title = "ليا انا";
-  const body = "بركة النهاردة جاهزة لك. افتح التطبيق وشوف رسالة اليوم.";
+async function showVerseNotification(
+  period: Period,
+  title: string,
+  body: string,
+) {
+  const options: NotificationOptions = {
+    body,
+    icon: "/pwa-192x192.png",
+    tag: `verse-reminder-${period}`,
+  };
 
   if (typeof navigator !== "undefined" && "serviceWorker" in navigator) {
     try {
       const registration = await navigator.serviceWorker.getRegistration();
       if (registration && typeof registration.showNotification === "function") {
         await registration.showNotification(title, {
-          body,
-          icon: "/pwa-192x192.png",
+          ...options,
           badge: "/pwa-64x64.png",
-          tag: "daily-reminder-9am",
         });
         return;
       }
@@ -74,15 +97,11 @@ async function showReminderNotification() {
     }
   }
 
-  new Notification(title, {
-    body,
-    icon: "/pwa-192x192.png",
-    tag: "daily-reminder-9am",
-  });
+  new Notification(title, options);
 }
 
-export async function maybeShowDailyReminderAtNine() {
-  if (!isDailyReminderEnabled()) {
+export async function maybeShowVerseReminder(period: Period) {
+  if (!isReminderEnabled(period)) {
     return;
   }
 
@@ -90,25 +109,38 @@ export async function maybeShowDailyReminderAtNine() {
     return;
   }
 
-  const support = getNotificationSupportState();
-  if (support !== "granted") {
+  if (getNotificationSupportState() !== "granted") {
     return;
   }
 
-  const todayKey = getTodayKey();
-  if (getLastShownDay() === todayKey) {
+  // The period key doubles as the schedule: it only changes at the period
+  // boundary, so one notification per day/week/month falls out of the dedup.
+  const periodKey = getPeriodKey(period);
+  const { lastShownSetting, title } = reminders[period];
+  if (getSetting<string>(lastShownSetting) === periodKey) {
     return;
   }
 
-  await showReminderNotification();
-  setLastShownDay(todayKey);
+  const picked = getPeriodItem(await getVerses(), "verse", period);
+  if (!picked) {
+    return;
+  }
+
+  await showVerseNotification(period, title, parseVerse(picked).verse);
+  setSetting(lastShownSetting, periodKey);
 }
 
-export function startDailyReminderWatcher() {
-  void maybeShowDailyReminderAtNine();
+export async function maybeShowVerseReminders() {
+  for (const period of reminderPeriods) {
+    await maybeShowVerseReminder(period);
+  }
+}
+
+export function startVerseReminderWatcher() {
+  void maybeShowVerseReminders();
 
   const intervalId = window.setInterval(() => {
-    void maybeShowDailyReminderAtNine();
+    void maybeShowVerseReminders();
   }, 60 * 1000);
 
   return () => {
@@ -116,6 +148,6 @@ export function startDailyReminderWatcher() {
   };
 }
 
-export function getDailyReminderTimeLabel() {
+export function getReminderTimeLabel() {
   return "9:00 صباحًا";
 }

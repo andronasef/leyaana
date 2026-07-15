@@ -5,6 +5,10 @@ export enum SettingsList {
   isWelcomed = "isWelcomed",
   dailyNotificationEnabled = "dailyNotificationEnabled",
   dailyNotificationLastShownOn = "dailyNotificationLastShownOn",
+  weeklyNotificationEnabled = "weeklyNotificationEnabled",
+  weeklyNotificationLastShownOn = "weeklyNotificationLastShownOn",
+  monthlyNotificationEnabled = "monthlyNotificationEnabled",
+  monthlyNotificationLastShownOn = "monthlyNotificationLastShownOn",
 }
 
 export enum Gender {

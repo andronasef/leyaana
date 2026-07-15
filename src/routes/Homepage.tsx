@@ -14,15 +14,19 @@ import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { ColorModeContext } from "../App";
 import { arabicFontStack } from "../theme";
 import {
-  getDailyReminderTimeLabel,
   getNotificationSupportState,
-  maybeShowDailyReminderAtNine,
+  getReminderTimeLabel,
+  isReminderEnabled,
+  maybeShowVerseReminder,
+  reminderPeriods,
+  reminders,
   requestNotificationPermission,
 } from "../utils/notifications";
 import AddPage from "./Add";
 import {
   ContentType,
   NamedContent,
+  Period,
   Verse,
   getGodNames,
   getHeavenlyBlessings,
@@ -62,8 +66,11 @@ function Homepage({ currentTab }: HomepageProps) {
   const [isDarkMode, setIsDarkMode] = useState(
     getSetting<string>(SettingsList.isDarkMode) === "true",
   );
-  const [dailyNotificationEnabled, setDailyNotificationEnabled] = useState(
-    getSetting<string>(SettingsList.dailyNotificationEnabled) === "true",
+  const [reminderEnabled, setReminderEnabled] = useState(
+    () =>
+      Object.fromEntries(
+        reminderPeriods.map((period) => [period, isReminderEnabled(period)]),
+      ) as Record<Period, boolean>,
   );
   const [notificationPermission, setNotificationPermission] = useState(
     getNotificationSupportState(),
@@ -168,9 +175,9 @@ function Homepage({ currentTab }: HomepageProps) {
     setIsDarkMode((current) => !current);
   };
 
-  const toggleDailyReminder = async (enabled: boolean) => {
-    setDailyNotificationEnabled(enabled);
-    setSetting(SettingsList.dailyNotificationEnabled, enabled);
+  const toggleReminder = async (period: Period, enabled: boolean) => {
+    setReminderEnabled((current) => ({ ...current, [period]: enabled }));
+    setSetting(reminders[period].enabledSetting, enabled);
 
     let permission = getNotificationSupportState();
     if (enabled && permission === "default") {
@@ -180,7 +187,7 @@ function Homepage({ currentTab }: HomepageProps) {
     setNotificationPermission(permission);
 
     if (enabled && permission === "granted") {
-      void maybeShowDailyReminderAtNine();
+      void maybeShowVerseReminder(period);
     }
   };
 
@@ -188,8 +195,10 @@ function Homepage({ currentTab }: HomepageProps) {
     const permission = await requestNotificationPermission();
     setNotificationPermission(permission);
 
-    if (permission === "granted" && dailyNotificationEnabled) {
-      void maybeShowDailyReminderAtNine();
+    if (permission === "granted") {
+      reminderPeriods
+        .filter((period) => reminderEnabled[period])
+        .forEach((period) => void maybeShowVerseReminder(period));
     }
   };
 
@@ -205,26 +214,26 @@ function Homepage({ currentTab }: HomepageProps) {
     setCanInstallPwa(false);
   };
 
-  const dailyReminderStatus = (() => {
-    const timeLabel = getDailyReminderTimeLabel();
+  const reminderStatus = (() => {
+    const timeLabel = getReminderTimeLabel();
 
     if (notificationPermission === "unsupported") {
       return "المتصفح لا يدعم إشعارات النظام على هذا الجهاز.";
     }
 
-    if (!dailyNotificationEnabled) {
-      return `فعّل التنبيه اليومي لإرسال تذكير الساعة ${timeLabel}.`;
+    if (!reminderPeriods.some((period) => reminderEnabled[period])) {
+      return `فعّل أي تنبيه لتصلك الآية الساعة ${timeLabel}.`;
     }
 
     if (notificationPermission === "granted") {
-      return `التنبيه اليومي مفعل. سيصلك تذكير يوميًا الساعة ${timeLabel}.`;
+      return `التنبيهات مفعلة. هتوصلك الآية الساعة ${timeLabel}.`;
     }
 
     if (notificationPermission === "denied") {
       return "الإشعارات مرفوضة من المتصفح. اسمح بها من إعدادات المتصفح أولًا.";
     }
 
-    return `اسمح بالإشعارات ليعمل التذكير اليومي الساعة ${timeLabel}.`;
+    return `اسمح بالإشعارات ليوصلك التنبيه الساعة ${timeLabel}.`;
   })();
 
   const renderActiveContent = () => {
@@ -350,30 +359,33 @@ function Homepage({ currentTab }: HomepageProps) {
             }}
           />
 
-          <FormControlLabel
-            control={
-              <Switch
-                checked={dailyNotificationEnabled}
-                onChange={(_, checked) => {
-                  void toggleDailyReminder(checked);
-                }}
-              />
-            }
-            label="تذكير يومي الساعة 9:00 صباحًا"
-            sx={{
-              mb: 1,
-              width: "100%",
-              justifyContent: "space-between",
-              ml: 0,
-            }}
-          />
+          {reminderPeriods.map((period) => (
+            <FormControlLabel
+              key={period}
+              control={
+                <Switch
+                  checked={reminderEnabled[period]}
+                  onChange={(_, checked) => {
+                    void toggleReminder(period, checked);
+                  }}
+                />
+              }
+              label={`تنبيه ${reminders[period].title}`}
+              sx={{
+                mb: 1,
+                width: "100%",
+                justifyContent: "space-between",
+                ml: 0,
+              }}
+            />
+          ))}
 
           <Typography
             mb={2}
             color="text.secondary"
             fontFamily={arabicFontStack}
           >
-            {dailyReminderStatus}
+            {reminderStatus}
           </Typography>
 
           {notificationPermission !== "granted" &&

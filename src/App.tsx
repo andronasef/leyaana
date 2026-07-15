@@ -11,7 +11,7 @@ import { ThemeProvider, CssBaseline, Fade, useMediaQuery } from "@mui/material";
 import { getTheme } from "./theme";
 import React, { useEffect, useMemo, useState } from "react";
 import { SettingsList, getSetting, setSetting } from "./utils/settings";
-import { startDailyReminderWatcher } from "./utils/notifications";
+import { startVerseReminderWatcher } from "./utils/notifications";
 import { Toaster } from "react-hot-toast";
 import BottomNav from "./components/BottomNav";
 import { flushPendingMutations } from "./utils/api";
@@ -81,7 +81,7 @@ function App() {
 
     window.addEventListener("online", handleOnline);
 
-    const stopWatcher = startDailyReminderWatcher();
+    const stopWatcher = startVerseReminderWatcher();
     return () => {
       disposed = true;
       window.removeEventListener("online", handleOnline);

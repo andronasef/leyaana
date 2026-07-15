@@ -1,5 +1,9 @@
 import { createClient } from "@sanity/client";
 import { SettingsList, getSetting } from "./settings";
+import { Period, getPeriodKey } from "./period";
+
+export { getPeriodKey };
+export type { Period };
 
 const sanityClient = createClient({
   projectId: import.meta.env.VITE_SANITY_PROJECT_ID || "kfme7y2v",
@@ -744,12 +748,21 @@ export function getRandomTodayVerse(allVerses: Verse[]) {
   return allVerses[verseIndex];
 }
 
-export function getDailyItem<T>(allItems: T[], typeKey: string): T | undefined {
+export function getPeriodItem<T>(
+  allItems: T[],
+  typeKey: string,
+  period: Period = "daily",
+): T | undefined {
   if (!allItems.length) return undefined;
-  const dateKey = new Date().toISOString().slice(0, 10);
   const userKey = getPersonName();
-  const index = hashValue(`${dateKey}:${userKey}:${typeKey}`) % allItems.length;
+  const index =
+    hashValue(`${getPeriodKey(period)}:${userKey}:${typeKey}`) %
+    allItems.length;
   return allItems[index];
+}
+
+export function getDailyItem<T>(allItems: T[], typeKey: string): T | undefined {
+  return getPeriodItem(allItems, typeKey, "daily");
 }
 
 export function parseVerse(myVerse: Verse) {
