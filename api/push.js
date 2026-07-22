@@ -33,7 +33,11 @@ async function tick(req, res) {
     return res.status(401).json({ ok: false, error: "Unauthorized." });
   }
 
-  return res.status(200).json({ ok: true, ...(await sendDueKnocks()) });
+  const force = req.query?.force === "1";
+
+  return res
+    .status(200)
+    .json({ ok: true, force, ...(await sendDueKnocks(new Date(), force)) });
 }
 
 async function subscribe(req, res) {

@@ -8,7 +8,7 @@ import {
 import { NavigationRoute, registerRoute } from "workbox-routing";
 import { ExpirationPlugin } from "workbox-expiration";
 import { NetworkFirst, NetworkOnly } from "workbox-strategies";
-import { dueReminders, markShown } from "./utils/reminderCore";
+import { dueReminders, markShown, periodTitles } from "./utils/reminderCore";
 import { readReminderState, writeReminderState } from "./utils/reminderStore";
 
 declare const self: ServiceWorkerGlobalScope;
@@ -91,6 +91,20 @@ async function showDueReminders() {
 // purpose — everything needed to pick the verse is already in IndexedDB, so no
 // verse or personal data ever passes through the server.
 self.addEventListener("push", (event) => {
+  // The one exception to the empty knock: /api/push?force=1 sends "test" so
+  // delivery can be proven outside the 9am window.
+  if (event.data?.text() === "test") {
+    event.waitUntil(
+      self.registration.showNotification(periodTitles.daily, {
+        body: "التنبيهات شغالة ✅",
+        icon: "/pwa-192x192.png",
+        badge: "/pwa-64x64.png",
+        tag: "verse-reminder-test",
+      }),
+    );
+    return;
+  }
+
   event.waitUntil(showDueReminders());
 });
 

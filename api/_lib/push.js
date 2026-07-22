@@ -101,19 +101,24 @@ function localHour(now, tzOffset) {
 // The push carries no payload: the service worker already knows every user's
 // verses from IndexedDB and decides what (if anything) is actually due. The
 // server only knocks, so no verse or personal data ever reaches it.
-export async function sendDueKnocks(now = new Date()) {
+// force skips the hour check and asks the worker for a visible test
+// notification, so delivery can be proven at any time of day instead of only
+// at 9am. Guarded by the same secret as the tick itself.
+export async function sendDueKnocks(now = new Date(), force = false) {
   const stored = await sanityClient.fetch(
     `*[_type == "pushSubscription"]{_id, blob, tzOffset}`,
   );
 
-  const targets = stored.filter(
-    (row) => localHour(now, row.tzOffset ?? 0) === REMINDER_HOUR,
-  );
+  const targets = force
+    ? stored
+    : stored.filter(
+        (row) => localHour(now, row.tzOffset ?? 0) === REMINDER_HOUR,
+      );
 
   const results = await Promise.allSettled(
     targets.map(async (row) => {
       try {
-        await webpush.sendNotification(unseal(row.blob), "");
+        await webpush.sendNotification(unseal(row.blob), force ? "test" : "");
       } catch (error) {
         // 404/410 mean the browser dropped the subscription for good.
         if (error?.statusCode === 404 || error?.statusCode === 410) {
