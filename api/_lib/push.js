@@ -38,12 +38,17 @@ function seal(value) {
 
 function unseal(blob) {
   const raw = Buffer.from(blob, "base64");
-  const decipher = crypto.createDecipheriv("aes-256-gcm", sealKey, raw.subarray(0, 12));
+  const decipher = crypto.createDecipheriv(
+    "aes-256-gcm",
+    sealKey,
+    raw.subarray(0, 12),
+  );
   decipher.setAuthTag(raw.subarray(12, 28));
   return JSON.parse(
-    Buffer.concat([decipher.update(raw.subarray(28)), decipher.final()]).toString(
-      "utf8",
-    ),
+    Buffer.concat([
+      decipher.update(raw.subarray(28)),
+      decipher.final(),
+    ]).toString("utf8"),
   );
 }
 
@@ -95,7 +100,7 @@ const REMINDER_HOUR = 9;
 
 function localHour(now, tzOffset) {
   const minutes = now.getUTCHours() * 60 + now.getUTCMinutes() - tzOffset;
-  return Math.floor(((minutes % 1440) + 1440) % 1440 / 60);
+  return Math.floor((((minutes % 1440) + 1440) % 1440) / 60);
 }
 
 // The push carries no payload: the service worker already knows every user's
@@ -136,8 +141,9 @@ export async function sendDueKnocks(now = new Date(), force = false) {
     matched: targets.length,
     sent: results.filter((r) => r.status === "fulfilled" && r.value === "sent")
       .length,
-    dropped: results.filter((r) => r.status === "fulfilled" && r.value === "gone")
-      .length,
+    dropped: results.filter(
+      (r) => r.status === "fulfilled" && r.value === "gone",
+    ).length,
     failed: results.filter((r) => r.status === "rejected").length,
   };
 }

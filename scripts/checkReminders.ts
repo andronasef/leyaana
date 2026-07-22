@@ -89,6 +89,28 @@ assert.equal(dueReminders(marked, later).length, 0, "shown once per period");
 const nextDay = new Date(2026, 6, 16, 9, 30);
 assert.equal(dueReminders(marked, nextDay).length, 1, "new day fires again");
 
+// preview (the force test) bypasses both gates but must still return the exact
+// reminder the real 9am run would, or the test would prove the wrong thing.
+assert.equal(
+  dueReminders(state(), before9, true).length,
+  3,
+  "preview ignores the hour",
+);
+assert.equal(
+  dueReminders(marked, later, true)[0].body,
+  daily.body,
+  "preview ignores dedup and keeps the same verse",
+);
+assert.equal(
+  dueReminders(
+    state({ enabled: { daily: false, weekly: false, monthly: false } }),
+    later,
+    true,
+  ).length,
+  0,
+  "preview still respects disabled periods",
+);
+
 // the verse is stable within a period and independent of time of day
 assert.equal(
   dueReminders(state(), at9)[0].body,

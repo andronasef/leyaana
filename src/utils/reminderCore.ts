@@ -45,8 +45,15 @@ export function isReminderTimeReached(now: Date) {
 
 // Pure so both the in-app watcher and the service worker's periodicsync handler
 // reach the same verdict, and so it can be asserted in plain node.
-export function dueReminders(state: ReminderState, now: Date): DueReminder[] {
-  if (!state.verses.length || !isReminderTimeReached(now)) {
+// preview ignores the 9am gate and the once-per-period dedup, so the force test
+// can render exactly the notification a user would really get. Nothing calls it
+// with preview on except that test, and it never marks anything as shown.
+export function dueReminders(
+  state: ReminderState,
+  now: Date,
+  preview = false,
+): DueReminder[] {
+  if (!state.verses.length || (!preview && !isReminderTimeReached(now))) {
     return [];
   }
 
@@ -54,7 +61,7 @@ export function dueReminders(state: ReminderState, now: Date): DueReminder[] {
     if (!state.enabled[period]) return [];
 
     const periodKey = getPeriodKey(period, now);
-    if (state.lastShown[period] === periodKey) return [];
+    if (!preview && state.lastShown[period] === periodKey) return [];
 
     const body =
       state.verses[

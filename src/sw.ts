@@ -86,6 +86,26 @@ async function showDueReminders() {
   }
 }
 
+// The real thing, minus the schedule: same verse, same title the 9am knock
+// would deliver, so the test proves the actual reminder rather than a stand-in.
+// Nothing is marked shown, so the genuine reminder still arrives on time.
+async function showTestReminder() {
+  const state = await readReminderState();
+  const [preview] = dueReminders(state, new Date(), true);
+
+  await self.registration.showNotification(
+    preview?.title ?? periodTitles.daily,
+    {
+      // Only reachable with every reminder switched off or the verses not
+      // synced yet, and a silent push would be worse than an honest hint.
+      body: preview?.body ?? "التنبيهات شغالة، لكن مفيش تذكير مفعّل",
+      icon: "/pwa-192x192.png",
+      badge: "/pwa-64x64.png",
+      tag: "verse-reminder-test",
+    },
+  );
+}
+
 // The reliable path: /api/push knocks once a day around the user's 9am and the
 // worker wakes even with the app closed. The knock carries no payload on
 // purpose — everything needed to pick the verse is already in IndexedDB, so no
@@ -93,19 +113,9 @@ async function showDueReminders() {
 self.addEventListener("push", (event) => {
   // The one exception to the empty knock: /api/push?force=1 sends "test" so
   // delivery can be proven outside the 9am window.
-  if (event.data?.text() === "test") {
-    event.waitUntil(
-      self.registration.showNotification(periodTitles.daily, {
-        body: "التنبيهات شغالة ✅",
-        icon: "/pwa-192x192.png",
-        badge: "/pwa-64x64.png",
-        tag: "verse-reminder-test",
-      }),
-    );
-    return;
-  }
-
-  event.waitUntil(showDueReminders());
+  event.waitUntil(
+    event.data?.text() === "test" ? showTestReminder() : showDueReminders(),
+  );
 });
 
 self.addEventListener("periodicsync", (event) => {
