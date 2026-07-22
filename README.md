@@ -203,6 +203,34 @@ To contribute new verses, God names, or blessings:
 3. Run `npm run content` to fetch updates
 4. Submit a PR with the updated JSON files
 
+## 🔔 Background Reminders (Web Push)
+
+Reminders fire while the app is closed through Web Push. The server never sees a
+verse: it only sends an empty *knock*, and the service worker picks the verse
+from IndexedDB itself.
+
+**Environment variables** (Vercel project settings + local `.env`):
+
+| Variable | What it is |
+| --- | --- |
+| `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | Generate with `npx web-push generate-vapid-keys` |
+| `VAPID_SUBJECT` | `mailto:you@example.com` |
+| `PUSH_SECRET` | Random string; doubles as the cron token |
+| `VITE_VAPID_PUBLIC_KEY` | Same value as `VAPID_PUBLIC_KEY`, exposed to the client |
+
+**Scheduling** — point any free scheduler (cron-job.org, UptimeRobot, GitHub
+Actions) at the tick endpoint **once an hour**:
+
+```
+GET https://<your-domain>/api/push?secret=<PUSH_SECRET>
+```
+
+Each run pushes only to devices whose *local* time is 9am, so every user gets
+exactly one knock a day. Hourly is required because users span timezones.
+
+**iOS**: web push only works once the app is added to the Home Screen (iOS 16.4+).
+In a Safari tab, nothing arrives — no workaround exists.
+
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

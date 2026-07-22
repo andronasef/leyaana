@@ -23,6 +23,7 @@ import {
   reminderPeriods,
   reminders,
   requestNotificationPermission,
+  subscribeToPush,
 } from "../utils/notifications";
 import AddPage from "./Add";
 import {
@@ -203,6 +204,7 @@ function Homepage({ currentTab }: HomepageProps) {
     await refreshAndShowReminders();
 
     if (enabled) {
+      void subscribeToPush();
       void registerPeriodicReminderSync();
     }
   };
@@ -213,6 +215,7 @@ function Homepage({ currentTab }: HomepageProps) {
 
     if (permission === "granted") {
       await refreshAndShowReminders();
+      void subscribeToPush();
       void registerPeriodicReminderSync();
     }
   };

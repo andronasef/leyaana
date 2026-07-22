@@ -109,6 +109,61 @@ export async function refreshAndShowReminders() {
   await maybeShowVerseReminders();
 }
 
+// Push keys travel as base64url; PushManager wants raw bytes.
+function urlBase64ToUint8Array(value: string) {
+  const padded = (value + "=".repeat((4 - (value.length % 4)) % 4))
+    .replace(/-/g, "+")
+    .replace(/_/g, "/");
+  const raw = atob(padded);
+  return Uint8Array.from(raw, (char) => char.charCodeAt(0));
+}
+
+// The one path that actually fires while the app is closed: the device holds a
+// push subscription, and an external scheduler pokes /api/push once an hour so
+// the server can knock on whoever is at 9am local. Idempotent — safe to call on
+// every permission grant and toggle.
+export async function subscribeToPush() {
+  const applicationServerKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+
+  if (
+    !applicationServerKey ||
+    typeof navigator === "undefined" ||
+    !("serviceWorker" in navigator) ||
+    getNotificationSupportState() !== "granted"
+  ) {
+    return false;
+  }
+
+  try {
+    const registration = await navigator.serviceWorker.ready;
+    if (!registration.pushManager) {
+      return false;
+    }
+
+    const subscription =
+      (await registration.pushManager.getSubscription()) ??
+      (await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(applicationServerKey),
+      }));
+
+    const response = await fetch("/api/push", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        subscription: subscription.toJSON(),
+        // Lets the server knock at the user's 9am instead of blasting everyone
+        // hourly, which browsers punish as silent pushes.
+        tzOffset: new Date().getTimezoneOffset(),
+      }),
+    });
+
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
 // Best-effort background delivery. Chrome decides if and when periodicsync
 // actually fires, so the in-page watcher below stays as the reliable path.
 export async function registerPeriodicReminderSync() {
@@ -140,6 +195,7 @@ export async function registerPeriodicReminderSync() {
 
 export function startVerseReminderWatcher() {
   void refreshAndShowReminders();
+  void subscribeToPush();
   void registerPeriodicReminderSync();
 
   const intervalId = window.setInterval(() => {

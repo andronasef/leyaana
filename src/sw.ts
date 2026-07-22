@@ -86,6 +86,14 @@ async function showDueReminders() {
   }
 }
 
+// The reliable path: /api/push knocks once a day around the user's 9am and the
+// worker wakes even with the app closed. The knock carries no payload on
+// purpose — everything needed to pick the verse is already in IndexedDB, so no
+// verse or personal data ever passes through the server.
+self.addEventListener("push", (event) => {
+  event.waitUntil(showDueReminders());
+});
+
 self.addEventListener("periodicsync", (event) => {
   const syncEvent = event as PeriodicSyncEvent;
   if (syncEvent.tag !== "verse-reminders") {
