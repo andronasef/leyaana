@@ -81,13 +81,14 @@ function AllVerses() {
 
       <div className="grid gap-4">
         {verses.map((verse, index) => {
-          const theParsedVerse = testVerse(verse.verse);
+          const verseText = verse.verse ?? "";
+          const theParsedVerse = testVerse(verseText);
           const isError = theParsedVerse === false;
           if (isError) {
             // If there is an error, add to the error list
             setErrorVersesList((prev) => [
               ...prev,
-              "Verse #" + (index + 1) + ": " + verse.verse,
+              "Verse #" + (index + 1) + ": " + verseText,
             ]);
           }
           return (
@@ -104,7 +105,7 @@ function AllVerses() {
               <div className="text-lg">
                 {isError ? "حدث مشكلة اثناء عمل الاية" : theParsedVerse}
               </div>
-              <div className="mt-2 text-sm text-gray-500">{verse.verse}</div>
+              <div className="mt-2 text-sm text-gray-500">{verseText}</div>
             </div>
           );
         })}
