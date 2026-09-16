@@ -15,6 +15,8 @@ import { startVerseReminderWatcher } from "./utils/notifications";
 import { Toaster } from "react-hot-toast";
 import BottomNav from "./components/BottomNav";
 import { flushPendingMutations } from "./utils/api";
+import { Route, Switch } from "wouter";
+import AllVerses from "./routes/All";
 
 // Create rtl cache
 const cacheRtl = createCache({
@@ -122,41 +124,46 @@ function App() {
         <ThemeProvider theme={theme}>
           <CssBaseline />
           <Toaster />
-          <div
-            className="mx-auto flex min-h-[100dvh] max-w-md flex-col sm:border-x shadow-xl overflow-hidden relative"
-            style={{
-              backgroundColor: theme.palette.background.default,
-              borderColor: theme.palette.divider,
-            }}
-          >
-            <div className="flex-1 overflow-y-auto pb-16 scrollbar-hide">
-              {isWelcomed ? (
-                <div className="relative h-full">
-                  <Fade
-                    in={transitionIn}
-                    timeout={transitionTimeout}
-                    mountOnEnter
-                    unmountOnExit
-                    onExited={handleTabExited}
-                  >
-                    <div className="h-full">
-                      <Homepage currentTab={visibleTab} />
+          <Switch>
+            <Route path="/all" component={AllVerses} />
+            <Route>
+              <div
+                className="mx-auto flex min-h-[100dvh] max-w-md flex-col sm:border-x shadow-xl overflow-hidden relative"
+                style={{
+                  backgroundColor: theme.palette.background.default,
+                  borderColor: theme.palette.divider,
+                }}
+              >
+                <div className="flex-1 overflow-y-auto pb-16 scrollbar-hide">
+                  {isWelcomed ? (
+                    <div className="relative h-full">
+                      <Fade
+                        in={transitionIn}
+                        timeout={transitionTimeout}
+                        mountOnEnter
+                        unmountOnExit
+                        onExited={handleTabExited}
+                      >
+                        <div className="h-full">
+                          <Homepage currentTab={visibleTab} />
+                        </div>
+                      </Fade>
                     </div>
-                  </Fade>
+                  ) : (
+                    <div className="px-4 py-8">
+                      <WelcomePage onComplete={() => setIsWelcomed(true)} />
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <div className="px-4 py-8">
-                  <WelcomePage onComplete={() => setIsWelcomed(true)} />
-                </div>
-              )}
-            </div>
-            {isWelcomed && (
-              <BottomNav
-                currentTab={currentTab}
-                onChangeTab={(tab) => setCurrentTab(tab as AppTab)}
-              />
-            )}
-          </div>
+                {isWelcomed && (
+                  <BottomNav
+                    currentTab={currentTab}
+                    onChangeTab={(tab) => setCurrentTab(tab as AppTab)}
+                  />
+                )}
+              </div>
+            </Route>
+          </Switch>
         </ThemeProvider>
       </CacheProvider>
     </ColorModeContext.Provider>
